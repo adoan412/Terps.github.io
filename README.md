@@ -540,7 +540,7 @@
      Handler (JS) also plays a short "boo!" tone + removes class. */
   .jump-scare-overlay {
     position: fixed; inset: 0; z-index: 200;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: rgba(0,0,0,.85);
     animation: jsFlash .9s cubic-bezier(.5,0,.5,1);
     pointer-events: none;
@@ -549,6 +549,16 @@
     font-size: 55vmin; line-height: 1;
     filter: drop-shadow(0 0 40px rgba(255,255,255,.4));
     animation: jsPop .9s cubic-bezier(.3,2,.4,1);
+  }
+  .jump-scare-overlay .js-caption {
+    margin-top: 20px;
+    color: #fff;
+    font-size: clamp(20px, 4.5vmin, 48px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-shadow: 0 3px 10px rgba(0,0,0,.8);
+    animation: jsPop .9s cubic-bezier(.3,2,.4,1) .08s both;
   }
   @keyframes jsFlash {
     0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
@@ -1332,6 +1342,27 @@
   .theme-opt.selected, .store-opt.selected { border-color: var(--accent); background: var(--accent-soft); }
   .theme-swatch { width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 6px; box-shadow: var(--shadow-sm); border: 2px solid rgba(255,255,255,.15); }
   .theme-opt-name, .store-opt-name { font-size: 11px; font-weight: 700; }
+  /* Section headers inside the theme-grid (span all columns). */
+  .theme-section-title {
+    grid-column: 1 / -1;
+    font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-muted);
+    text-align: left;
+    margin: 10px 0 2px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .theme-section-title:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .theme-section-sub {
+    grid-column: 1 / -1;
+    font-size: 10px; font-weight: 500;
+    color: var(--text-muted); text-align: left;
+    margin: -2px 0 4px; opacity: .8;
+  }
+  .theme-opt { position: relative; }
+  .theme-opt-credit { font-size: 9.5px; color: var(--text-muted); font-weight: 500; margin-top: 2px; line-height: 1.15; }
+  .theme-opt-emoji { position: absolute; top: 4px; right: 6px; font-size: 14px; line-height: 1; }
+  .theme-opt.cartoon { background: linear-gradient(135deg, var(--surface) 0%, var(--accent-soft) 100%); }
   .store-opt-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
   /* ─── Empty / Loading ─────────────────────────────────── */
@@ -4146,16 +4177,56 @@ function matchesAny(p, needles) {
   return needles.some(n => hay.includes(n));
 }
 
-/* ─── Themes ─────────────────────────────────────────── */
+/* ─── Themes ─────────────────────────────────────────────────
+   Theme groups:
+     classic  — the original 7 palette-only themes, always available
+     designer — palette + layout language inspired by prolific
+                designers through history (Bayer, Sottsass,
+                Müller-Brockmann, Bass, Vignelli, Rams, Cassandre)
+     cartoon  — naughty-mode-only playful modes with moving
+                elements and jump scares (SpongeBob, Scooby Doo,
+                Dexter's Lab, Initial D, One Piece, Cheech & Chong)
+   `color` is the swatch shown in the picker.
+   `credit` is shown under the name for designer themes.
+   `naughtyOnly: true` hides the entry from the picker unless
+   stoner mode is active, and forces-swap back to 'noir' if the
+   user turns stoner mode off while a cartoon theme is selected.
+   `jumpscare` (cartoon only): { emoji, caption, ... } — consumed
+   by the jump-scare scheduler.
+   ─────────────────────────────────────────────────────────── */
 const THEMES = [
-  { id: 'noir',     name: 'Noir',     color: '#8bc541' },
-  { id: 'earth',    name: 'Earth',    color: '#1D9E75' },
-  { id: 'midnight', name: 'Midnight', color: '#7D9BFF' },
-  { id: 'sunset',   name: 'Sunset',   color: '#E56F3C' },
-  { id: 'lavender', name: 'Lavender', color: '#8664C6' },
-  { id: 'ocean',    name: 'Ocean',    color: '#0E8A90' },
-  { id: 'mono',     name: 'Mono',     color: '#222222' },
+  // ── Classic palettes ─────────────────────────────────
+  { id: 'noir',     name: 'Noir',     color: '#8bc541', group: 'classic' },
+  { id: 'earth',    name: 'Earth',    color: '#1D9E75', group: 'classic' },
+  { id: 'midnight', name: 'Midnight', color: '#7D9BFF', group: 'classic' },
+  { id: 'sunset',   name: 'Sunset',   color: '#E56F3C', group: 'classic' },
+  { id: 'lavender', name: 'Lavender', color: '#8664C6', group: 'classic' },
+  { id: 'ocean',    name: 'Ocean',    color: '#0E8A90', group: 'classic' },
+  { id: 'mono',     name: 'Mono',     color: '#222222', group: 'classic' },
+  // ── Designer-inspired layouts ────────────────────────
+  { id: 'bauhaus',  name: 'Bauhaus',      color: '#E63946', group: 'designer', credit: 'Bayer · Moholy-Nagy' },
+  { id: 'memphis',  name: 'Memphis',      color: '#00CFC1', group: 'designer', credit: 'Sottsass · 1980s' },
+  { id: 'swiss',    name: 'Swiss',        color: '#D62828', group: 'designer', credit: 'Müller-Brockmann' },
+  { id: 'saulbass', name: 'Saul Bass',    color: '#F26419', group: 'designer', credit: 'mid-century poster' },
+  { id: 'vignelli', name: 'Vignelli',     color: '#C8102E', group: 'designer', credit: 'Massimo Vignelli' },
+  { id: 'rams',     name: 'Rams',         color: '#6B8E23', group: 'designer', credit: 'Dieter Rams · less but better' },
+  { id: 'deco',     name: 'Deco',         color: '#D4AF37', group: 'designer', credit: 'A.M. Cassandre' },
+  // ── Cartoon (stoner mode only) ───────────────────────
+  { id: 'spongebob',name: 'SpongeBob',    color: '#FFD600', group: 'cartoon', naughtyOnly: true, emoji: '🧽',
+    jumpscare: { pool: ['🧽','🍍','⭐','🦑','🦀'], captions: ['I'+"'"+'m ready!','BARNACLES!','Krabby Patty secret formula','GARY NO'], freqMin: 55, freqMax: 140 } },
+  { id: 'scooby',   name: 'Scooby',       color: '#9BC53D', group: 'cartoon', naughtyOnly: true, emoji: '🐶',
+    jumpscare: { pool: ['👻','🐶','🕸️','🎃','💀'], captions: ['Ruh-roh!','Zoinks!','Jinkies!','And I would'+"'"+'ve gotten away with it…'], freqMin: 60, freqMax: 150 } },
+  { id: 'dexter',   name: "Dexter's Lab", color: '#37FF8B', group: 'cartoon', naughtyOnly: true, emoji: '🧪',
+    jumpscare: { pool: ['🧪','⚗️','⚡','🤖','💥'], captions: ['DEE-DEE NO!','OMELETTE DU FROMAGE','Experiment #41','LABORATORY!'], freqMin: 70, freqMax: 180 } },
+  { id: 'initiald', name: 'Initial D',    color: '#E63946', group: 'cartoon', naughtyOnly: true, emoji: '🏎️',
+    jumpscare: { pool: ['🏎️','💨','🫘','🏁','⛽'], captions: ['déjà vu','TOFU DELIVERY','GAS GAS GAS','INERTIA DRIFT'], freqMin: 45, freqMax: 120 } },
+  { id: 'onepiece', name: 'One Piece',    color: '#D4AF37', group: 'cartoon', naughtyOnly: true, emoji: '🏴‍☠️',
+    jumpscare: { pool: ['🏴‍☠️','👒','⚓','🦴','🗺️'], captions: ['YOHOHOHO!','I want ONE PIECE','Gomu Gomu no…','SET SAIL'], freqMin: 60, freqMax: 160 } },
+  { id: 'cheech',   name: 'Cheech & Chong', color: '#8FE86D', group: 'cartoon', naughtyOnly: true, emoji: '💨',
+    jumpscare: { pool: ['💨','🚐','🌿','🕶️','🎸'], captions: ['DAVE'+"'"+'s not here, man','far out','♪ up in smoke ♪','niiiice'], freqMin: 70, freqMax: 160 } },
 ];
+const CARTOON_THEMES = new Set(THEMES.filter(t => t.naughtyOnly).map(t => t.id));
+const THEME_BY_ID = Object.fromEntries(THEMES.map(t => [t.id, t]));
 
 /* ─── Naughty strings ────────────────────────────────── */
 const NAUGHTY_STRINGS = {
@@ -5252,21 +5323,77 @@ function buildCartText() {
 }
 
 /* ─── Theme ─────────────────────────────────────────── */
+/* applyTheme also keeps stoner mode in sync with the theme:
+ *   • Picking a cartoon theme auto-enables naughty so the animated
+ *     decorations (bubbles/speedlines/etc.) actually render — their
+ *     CSS is gated on [data-naughty="true"].
+ *   • If the user somehow lands on a cartoon theme while naughty is
+ *     off (e.g. stale localStorage), we fall back to 'noir'.
+ * Jump-scare scheduler is (re)armed whenever we land on a cartoon
+ * theme, and cleared otherwise. */
 function applyTheme(id) {
-  state.theme = id;
-  document.documentElement.setAttribute('data-theme', id);
-  localStorage.setItem('terpfinder_theme', id);
+  const t = THEME_BY_ID[id] || THEME_BY_ID['noir'];
+  if (t.naughtyOnly && !state.naughty) {
+    /* Turning on a cartoon theme implies stoner mode. */
+    state.naughty = true;
+    localStorage.setItem('terpfinder_naughty', '1');
+    document.documentElement.setAttribute('data-naughty', 'true');
+    applyNaughtyLabels();
+  }
+  state.theme = t.id;
+  document.documentElement.setAttribute('data-theme', t.id);
+  localStorage.setItem('terpfinder_theme', t.id);
   renderThemeSheet();
+  /* Re-arm jump scares for cartoon themes; clear for others. */
+  scheduleJumpScares(t.id);
 }
+/* Render the theme picker grouped into sections. Cartoon themes
+ * only appear when stoner mode is on (so sober patients never see
+ * the SpongeBob option). Each theme card shows swatch + name and,
+ * for designer/cartoon themes, a small credit/emoji line. */
 function renderThemeSheet() {
   const g = document.getElementById('theme-grid');
   g.innerHTML = '';
-  for (const t of THEMES) {
-    const el = document.createElement('div');
-    el.className = 'theme-opt' + (state.theme === t.id ? ' selected' : '');
-    el.innerHTML = `<div class="theme-swatch" style="background:${t.color}"></div><div class="theme-opt-name">${t.name}</div>`;
-    el.addEventListener('click', () => applyTheme(t.id));
-    g.appendChild(el);
+
+  /* Section definitions in render order. */
+  const SECTIONS = [
+    { id: 'classic',  label: 'Classic palettes',     sub: null },
+    { id: 'designer', label: 'Designer-inspired',    sub: 'Layouts channelled from a century of graphic design.' },
+    { id: 'cartoon',  label: 'Cartoon (stoner mode)', sub: 'Moving elements + random jump scares. Turn on stoner mode to use.' },
+  ];
+
+  for (const sec of SECTIONS) {
+    const entries = THEMES.filter(t => t.group === sec.id);
+    if (!entries.length) continue;
+    if (sec.id === 'cartoon' && !state.naughty) continue; // hide from sober users
+
+    const title = document.createElement('div');
+    title.className = 'theme-section-title';
+    title.textContent = sec.label;
+    g.appendChild(title);
+    if (sec.sub) {
+      const subEl = document.createElement('div');
+      subEl.className = 'theme-section-sub';
+      subEl.textContent = sec.sub;
+      g.appendChild(subEl);
+    }
+
+    for (const t of entries) {
+      const el = document.createElement('div');
+      el.className = 'theme-opt'
+        + (state.theme === t.id ? ' selected' : '')
+        + (sec.id === 'cartoon' ? ' cartoon' : '');
+      const credit = t.credit ? `<div class="theme-opt-credit">${esc(t.credit)}</div>` : '';
+      const emoji  = t.emoji  ? `<div class="theme-opt-emoji">${t.emoji}</div>` : '';
+      el.innerHTML = `
+        ${emoji}
+        <div class="theme-swatch" style="background:${t.color}"></div>
+        <div class="theme-opt-name">${esc(t.name)}</div>
+        ${credit}
+      `;
+      el.addEventListener('click', () => applyTheme(t.id));
+      g.appendChild(el);
+    }
   }
 }
 
@@ -5362,6 +5489,99 @@ function toggleNaughty() {
   document.body.appendChild(flash);
   setTimeout(() => flash.remove(), 800);
   applyNaughtyLabels();
+  /* If we turned stoner mode OFF while on a cartoon theme, bail to
+   * noir — the cartoon CSS is gated on [data-naughty="true"] and
+   * would otherwise leave a half-themed screen. */
+  if (!state.naughty && CARTOON_THEMES.has(state.theme)) {
+    applyTheme('noir');
+  } else {
+    /* Re-render picker so the cartoon section shows/hides, and
+     * re-arm (or clear) jump scares for the current theme. */
+    renderThemeSheet();
+    scheduleJumpScares(state.theme);
+  }
+}
+
+/* ─── Jump scares (cartoon themes only) ───────────────
+   Each cartoon theme defines a `.jumpscare` on its THEME entry:
+     { pool: [emoji...], captions: [...], freqMin, freqMax }
+   We schedule a single timer at a time (`_jsTimer`) and re-arm it
+   after each fire. The timer is cleared any time applyTheme moves
+   us off a cartoon theme — or toggles naughty off. This keeps us
+   from stacking timers after theme swaps and from firing jump
+   scares for sober users who never opted in.
+   A small WebAudio "boo" tone is played on fire, gated behind
+   user-gesture unlock so autoplay policies don't throw. */
+let _jsTimer = null;
+let _audioCtx = null;
+function ensureAudio() {
+  if (_audioCtx) return _audioCtx;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    _audioCtx = new AC();
+  } catch (e) { _audioCtx = null; }
+  return _audioCtx;
+}
+/* One-shot unlock: first user gesture anywhere wakes up the audio
+ * context so subsequent jump-scare tones play without permission. */
+window.addEventListener('pointerdown', () => {
+  const ac = ensureAudio();
+  if (ac && ac.state === 'suspended') ac.resume();
+}, { once: true });
+
+function jsBoop(freq) {
+  const ac = ensureAudio();
+  if (!ac || ac.state === 'suspended') return;
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(freq || 220, ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(60, ac.currentTime + .35);
+  g.gain.setValueAtTime(.18, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .38);
+  o.connect(g).connect(ac.destination);
+  o.start();
+  o.stop(ac.currentTime + .4);
+}
+
+function fireJumpScare(themeId) {
+  const t = THEME_BY_ID[themeId];
+  if (!t || !t.jumpscare) return;
+  /* Pick emoji + caption deterministically-random from the pool. */
+  const js = t.jumpscare;
+  const emoji = js.pool[Math.floor(Math.random() * js.pool.length)];
+  const cap   = js.captions[Math.floor(Math.random() * js.captions.length)] || '';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'jump-scare-overlay';
+  overlay.innerHTML = `
+    <div class="big-emoji" aria-hidden="true">${emoji}</div>
+    ${cap ? `<div class="js-caption">${esc(cap)}</div>` : ''}
+  `;
+  document.body.appendChild(overlay);
+  /* Theme-flavored tone pitch. */
+  const pitches = { spongebob: 660, scooby: 180, dexter: 440, initiald: 520, onepiece: 300, cheech: 200 };
+  jsBoop(pitches[themeId] || 240);
+  setTimeout(() => overlay.remove(), 900);
+}
+
+function scheduleJumpScares(themeId) {
+  if (_jsTimer) { clearTimeout(_jsTimer); _jsTimer = null; }
+  const t = THEME_BY_ID[themeId];
+  if (!t || !t.jumpscare || !state.naughty) return;
+  const { freqMin = 60, freqMax = 150 } = t.jumpscare;
+  const nextDelayMs = () =>
+    (freqMin + Math.random() * (freqMax - freqMin)) * 1000;
+  const tick = () => {
+    /* Guard: theme may have changed since we queued this. */
+    if (state.theme !== themeId || !state.naughty) return;
+    /* Only fire when tab is visible — nobody likes a surprise from
+     * a background tab they forgot about. */
+    if (!document.hidden) fireJumpScare(themeId);
+    _jsTimer = setTimeout(tick, nextDelayMs());
+  };
+  _jsTimer = setTimeout(tick, nextDelayMs());
 }
 
 /* ─── Konami ─────────────────────────────────────── */
